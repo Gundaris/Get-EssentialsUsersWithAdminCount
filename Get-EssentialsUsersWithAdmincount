@@ -1,0 +1,26 @@
+$users = Get-IdentityEssentialsUser -all | Select SAM
+foreach ($user in $users){
+    $ADUser = ""
+    try {
+        $ADUser = Get-ADUser -Identity ($user.sam -replace '.*\\') -Properties Admincount , memberOf
+        IF($ADUser.Admincount -eq "1"){
+            $Groups = (Get-ADGroup –LDAPFilter “(admincount=1)”).name
+            $ADGroups = $ADuser.memberOf -replace "(CN=)(.*?),.*",'$2'
+            $Match = 0
+            foreach ($Group in $Groups){ 
+                if ($ADGroups -contains $Group){ 
+                    $Match=1 
+                } 
+            }
+            If ($Match -eq 1){
+                Write-Host -ForegroundColor RED $user.sam "Admincount is set to 1 and user is member of a protected group"
+            }
+            Else {
+                Write-Host -ForegroundColor Green $user.sam "Admincount is set to 1 "$ADUser
+            }
+        }
+    }
+    Catch {
+        Write-Host -ForegroundColor yellow "Apologies, i could not determine Admin count for user" $user.sam            
+    }
+} 
